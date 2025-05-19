@@ -1,0 +1,157 @@
+
+
+ChatGPT
+You said:
+Need to access calender events that includes busy and available slots of my colleague in the organization through organization mail-ID (which is outlook). How to access them?
+If there is need of using any API, let me know the cost involved along with its reference as well as how to implement and further access needed in python code along with reference 
+ChatGPT said:
+To access calendar events—including busy and available slots of your colleagues using organization Outlook accounts—you will need to integrate with Microsoft Graph API, which is the official API provided by Microsoft to access Office 365 services like Outlook, Calendar, Contacts, etc.
+
+✅ Step-by-Step Guide to Access Colleague Calendar Availability (Busy/Free) via Outlook:
+1. API to Use: Microsoft Graph API
+To access calendar availability, use:
+Endpoint:
+POST https://graph.microsoft.com/v1.0/me/calendar/getSchedule
+
+ChatGPT
+You said:
+Need to access calender events that includes busy and available slots of my colleague in the organization through organization mail-ID (which is outlook). How to access them?
+If there is need of using any API, let me know the cost involved along with its reference as well as how to implement and further access needed in python code along with reference 
+ChatGPT said:
+To access calendar events—including busy and available slots of your colleagues using organization Outlook accounts—you will need to integrate with Microsoft Graph API, which is the official API provided by Microsoft to access Office 365 services like Outlook, Calendar, Contacts, etc.
+
+✅ Step-by-Step Guide to Access Colleague Calendar Availability (Busy/Free) via Outlook:
+1. API to Use: Microsoft Graph API
+To access calendar availability, use:
+
+Endpoint:
+
+POST https://graph.microsoft.com/v1.0/me/calendar/getSchedule
+This allows you to get the free/busy information for your colleagues.
+
+2. Cost / Pricing
+Microsoft Graph API is part of Microsoft 365 (formerly Office 365). Access is included with an Azure AD tenant and Microsoft 365 subscription.
+
+API Calls: No additional cost for basic usage under Microsoft 365 license.
+
+Rate Limits: Microsoft imposes service limits based on license type and tenant load.
+
+👉 Free Tier: Allows significant usage.
+👉 For production use, ensure your organization has a Microsoft 365 Business Standard or E5 license for calendar access.
+
+3. Permissions Required
+You need the following permission scopes:
+
+Calendars.Read
+
+Calendars.Read.Shared
+
+User.Read
+
+Schedule.Read (for getSchedule endpoint)
+
+These must be admin-consented if you're reading other users’ calendars.
+
+4. App Registration on Azure Portal
+Go to Azure Portal → Azure Active Directory → App Registrations.
+
+Click New Registration.
+
+Register app with:
+
+Redirect URI: http://localhost (for testing)
+
+Under API Permissions, add:
+
+Microsoft Graph → Delegated → Calendars.Read, Calendars.Read.Shared, Schedule.Read, User.Read
+
+Click Grant Admin Consent.
+
+5. Authentication (OAuth 2.0)
+Use MSAL (Microsoft Authentication Library) to handle sign-in and token retrieval.
+
+Install:
+pip install msal requests
+
+6. Python Code to Get Free/Busy Information
+import requests
+from msal import PublicClientApplication
+
+# ------------------ CONFIG -------------------
+CLIENT_ID = "your-app-client-id"
+TENANT_ID = "your-tenant-id"
+AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
+SCOPES = ["Calendars.Read", "Calendars.Read.Shared", "Schedule.Read", "User.Read"]
+# ---------------------------------------------
+
+# Interactive login
+app = PublicClientApplication(CLIENT_ID, authority=AUTHORITY)
+accounts = app.get_accounts()
+if accounts:
+    result = app.acquire_token_silent(SCOPES, account=accounts[0])
+else:
+    result = app.acquire_token_interactive(SCOPES)
+
+if "access_token" in result:
+    headers = {
+        'Authorization': 'Bearer ' + result['access_token'],
+        'Content-Type': 'application/json'
+    }
+
+    body = {
+        "schedules": ["colleague-email@yourcompany.com"],
+        "startTime": {
+            "dateTime": "2025-05-19T09:00:00",
+            "timeZone": "Pacific Standard Time"
+        },
+        "endTime": {
+            "dateTime": "2025-05-19T18:00:00",
+            "timeZone": "Pacific Standard Time"
+        },
+        "availabilityViewInterval": 30
+    }
+
+    response = requests.post(
+        "https://graph.microsoft.com/v1.0/me/calendar/getSchedule",
+        headers=headers,
+        json=body
+    )
+
+    data = response.json()
+    print(data)
+else:
+    print("Authentication failed:", result.get("error_description"))
+
+7. Response Format
+You’ll get availability like this:
+
+{
+  "value": [
+    {
+      "scheduleId": "colleague-email@yourcompany.com",
+      "availabilityView": "000002220000",
+      "scheduleItems": [
+        {
+          "start": "2025-05-19T10:00:00",
+          "end": "2025-05-19T11:00:00",
+          "status": "busy"
+        }
+      ]
+    }
+  ]
+}
+
+"availabilityView": 0 = Free, 1 = Tentative, 2 = Busy, 3 = OOF (Out of Office)
+
+https://learn.microsoft.com/en-us/graph/api/calendar-getschedule?view=graph-rest-1.0&tabs=http
+
+https://learn.microsoft.com/en-us/graph/auth-register-app-v2
+
+https://learn.microsoft.com/en-us/azure/active-directory/develop/msal-overview
+
+https://learn.microsoft.com/en-us/graph/throttling
+
+8. Notes
+Make sure your colleague has shared their calendar permissions (default is usually sufficient).
+
+For production apps, use authorization code flow and secure storage of credentials.
